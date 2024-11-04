@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "user-manager-service"
+version = "0.1.0"
+description = ""
+authors = ["Gur Shalev <shalevgur1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.115.4"
+sqlalchemy = "^2.0.36"
+psycopg2-binary = "^2.9.10"
+uvicorn = "^0.32.0"
+pydantic = "^2.9.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
