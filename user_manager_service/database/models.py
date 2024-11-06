@@ -14,3 +14,6 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
+
+    def __str__(self):
+        return f"User(id={self.id}, username='{self.username}', email='{self.email}')"

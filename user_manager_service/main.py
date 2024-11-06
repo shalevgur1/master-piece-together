@@ -1,13 +1,14 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, EmailStr
+from fastapi import FastAPI, status, HTTPException, Response
+from fastapi.responses import JSONResponse
 from database.database import DBUsersManager
 import schemas
 
+
 # User manager FastAPI app instance
-um_app = FastAPI()
+app = FastAPI()
 
 # Creating database manager object
-users_db = DBUsersManager()
+db = DBUsersManager()
 
 """ 
     Implementing CRUD for creating, reading, updating 
@@ -15,63 +16,51 @@ users_db = DBUsersManager()
 """
 
 # Creating new users and insert to database
-@um_app.post("/users/create", response_model=schemas.UserResponse)
+@app.post("/users/create", response_model=schemas.UserResponse)
 async def create_user(user: schemas.UserCreate):
-    print(user)
+    created_user = db.create_user(user.username, user.email, user.password)
+    if created_user is None:
+        # If user creation failed (e.g., username or email already exists)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this username or email already exists."
+        )
+    return created_user
+
+# Get requested user by username
+@app.get("/users/{username}", response_model=schemas.UserResponse)
+async def get_user(username: str):
+    user = db.get_user(username)
+    if user is None:
+            # If user is not found
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found."
+            )
     return user
 
+# Change requested user by user id
+@app.put("/users/{user_id}", response_model=schemas.UserResponse)
+async def get_user(user_id: int, user: schemas.UserCreate):
+    updated_user = db.update_user(user_id, user.username, user.email, user.password)
+    if updated_user is None:
+            # If the user to be updated is not found
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found or username or email already exist"
+            )
+    return updated_user
 
-
-
-
-# @um_app.get("/users/{username}", status_code=200)
-# async def get_user(username: str):
-#     print(username)
-
-# @um_app.put("/users/{username}", status_code=200)
-# async def update_user(update_info: User):
-#     print(update_info)
-
-# @um_app.delete("/users/{username}", status_code=200)
-# async def delete_user(username: str):
-#     print("going to delete this user: ", username)
-
-
-
-
-
-
-
-
-
-
-
-# @app.post("/users/", response_model=schemas.UserResponse)
-# async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-#     return crud.create_user(db=db, user=user)
-
-# @app.get("/users/", response_model=list[schemas.UserResponse])
-# async def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-#     users = crud.get_users(db=db, skip=skip, limit=limit)
-#     return users
-
-# @app.get("/users/{user_id}", response_model=schemas.UserResponse)
-# async def read_user(user_id: int, db: Session = Depends(get_db)):
-#     db_user = crud.get_user(db=db, user_id=user_id)
-#     if db_user is None:
-#         raise HTTPException(status_code=404, detail="User not found")
-#     return db_user
-
-# @app.put("/users/{user_id}", response_model=schemas.UserResponse)
-# async def update_user(user_id: int, user: schemas.UserCreate, db: Session = Depends(get_db)):
-#     db_user = crud.update_user(db=db, user_id=user_id, user=user)
-#     if db_user is None:
-#         raise HTTPException(status_code=404, detail="User not found")
-#     return db_user
-
-# @app.delete("/users/{user_id}", response_model=schemas.UserResponse)
-# async def delete_user(user_id: int, db: Session = Depends(get_db)):
-#     db_user = crud.delete_user(db=db, user_id=user_id)
-#     if db_user is None:
-#         raise HTTPException(status_code=404, detail="User not found")
-#     return db_user
+# Delete requested user by user_id
+@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def get_user(user_id: int):
+    deleted = db.delete_user(user_id)
+    if not deleted:
+        # If the user is not found, raise a 404 error
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+    # Return an empty response with 204 status code
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        

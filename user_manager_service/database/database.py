@@ -100,18 +100,18 @@ class DBUsersManager():
             session.refresh(new_user)
             return new_user
         except IntegrityError:
-            self.session.rollback()
+            session.rollback()
             print("User with that email already exists.")
             return None
         finally:
-            self.session.close()
+            session.close()
 
     def get_user(self, username: str) -> Optional[User]:
         """
         Return requested user object by 
         given username if found, None if not
         """
-        with self._get_session as session:
+        with self._get_session() as session:
             return session.query(User).filter(User.username == username).first()
 
     def update_user(self, user_id: int, username: Optional[str] = None, email: Optional[str] = None, password: Optional[str] = None) -> Optional[User]:
@@ -127,7 +127,7 @@ class DBUsersManager():
 
         session = self._get_session()
 
-        user = session(User).filter(User.id == user_id).first()
+        user = session.query(User).filter(User.id == user_id).first()
         # Check that user exists
         if not user:
             print(f"User with id {user_id} not found.")
@@ -147,11 +147,11 @@ class DBUsersManager():
             session.refresh(user)
             return user
         except IntegrityError:
-            self.session.rollback()
+            session.rollback()
             print("Error updating user.")
             return None
         finally:
-            self.session.close()
+            session.close()
 
     def delete_user(self, user_id: int) -> bool:
         """
