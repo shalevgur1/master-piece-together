@@ -4,13 +4,16 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import ProgrammingError, IntegrityError
 from dotenv import load_dotenv
 import os
-from models import Base, User
+from database.models import Base, User
 from typing import Optional
 import bcrypt
+from sqlalchemy import text
+
+from sqlalchemy_utils import database_exists, create_database
 
 # Load environment variables from .env file
 load_dotenv()
-MPT_USERS_MPT_USERS_DB_NAME = "mpt_users"
+MPT_USERS_DB_NAME = "mpt_users"
 
 class DBUsersManager():
 
@@ -21,48 +24,44 @@ class DBUsersManager():
         """
 
         # Check for mps_users db (also creates it if needed)
-        if _check_mpt_users():
+        if self._check_mpt_users():
             self.mpt_users_db_url = f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/{MPT_USERS_DB_NAME}"
 
             # Create the SQLAlchemy engine for mps_users db
-            self.mpt_users_engine = create_engine(mpt_users_db_url)
+            self.mpt_users_engine = create_engine(self.mpt_users_db_url)
 
             # Create all tables in the database
-            Base.metadata.create_all(bind=mpt_users_engine)
+            Base.metadata.create_all(bind=self.mpt_users_engine)
 
             # Create and return the sessionmaker
-            self.mpt_db_session_maker = sessionmaker(autocommit=False, autoflush=False, bind=mpt_users_engine)
+            self.mpt_db_session_maker = sessionmaker(autocommit=False, autoflush=False, bind=self.mpt_users_engine)
+            print("Database object initialized successfully!")
+        else:
+            self.mpt_db_session_maker = None
 
-        self.mpt_db_session_maker = None
-
-    def _check_mpt_users():
+    def _check_mpt_users(self):
         """
             Check for the existance of the mpt_users database.
             If it does not exist it is being created.
             If it does exist it is being connected.
         """
 
-        postgres_db_url = f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/postgres"
+        postgres_db_url = f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/{MPT_USERS_DB_NAME}"
         postgres_db_engine = create_engine(postgres_db_url)
 
-        with postgres_db_engine.connect() as connection:
-        # Check if the database exists
-            try:
-                connection.execute(f"SELECT 1 FROM pg_database WHERE datname='{MPT_USERS_DB_NAME}'")
-                print(f"Database '{MPT_USERS_DB_NAME}' already exists.")
+        try:
+            if not database_exists(postgres_db_engine.url):
+                print(f"Database '{MPT_USERS_DB_NAME}' does not exist. Creating...")
+                create_database(postgres_db_engine.url)
+                print(f"Database '{MPT_USERS_DB_NAME}' created successfully.")
                 return True
-            except ProgrammingError:
-                # If the database does not exist, create it
-                try:
-                    print(f"Database '{MPT_USERS_DB_NAME}' does not exist. Creating...")
-                    connection.execute(f"CREATE DATABASE {MPT_USERS_DB_NAME}")
-                    print(f"Database '{MPT_USERS_DB_NAME}' created successfully.")
-                    return True
-                except:
-                    print(f"There was a problem with creating '{MPT_USERS_DB_NAME}' database...")
-                    return False
+            print(f"Database '{MPT_USERS_DB_NAME}' already exists.")
+            return True
+        except Exception as e:
+            print(f"Unexpected error occurred: {str(e)}")
+            return False
     
-    def _get_session():
+    def _get_session(self):
         """ Get a new session instance """
         if self.mpt_db_session_maker:
             return self.mpt_db_session_maker()
