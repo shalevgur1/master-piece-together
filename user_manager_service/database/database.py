@@ -23,9 +23,11 @@ class DBUsersManager():
             Initialize session maker with the mpt_users db session maker
         """
 
+        print(f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@host.docker.internal:5432/{MPT_USERS_DB_NAME}")
+        self.mpt_users_db_url = f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@host.docker.internal:5432/{MPT_USERS_DB_NAME}"
+
         # Check for mps_users db (also creates it if needed)
         if self._check_mpt_users():
-            self.mpt_users_db_url = f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/{MPT_USERS_DB_NAME}"
 
             # Create the SQLAlchemy engine for mps_users db
             self.mpt_users_engine = create_engine(self.mpt_users_db_url)
@@ -46,7 +48,7 @@ class DBUsersManager():
             If it does exist it is being connected.
         """
 
-        postgres_db_url = f"postgresql://{os.getenv('POSTGRES_USERNAME')}:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/{MPT_USERS_DB_NAME}"
+        postgres_db_url = self.mpt_users_db_url
         postgres_db_engine = create_engine(postgres_db_url)
 
         try:
